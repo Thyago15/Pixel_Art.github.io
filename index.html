@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pixel Painter</title>
+<style>
+  body {
+    margin: 0;
+    background: #1e90ff; /* fundo azul */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: sans-serif;
+    user-select: none;
+  }
+
+  h1 {
+    color: white;
+    margin-top: 20px;
+  }
+
+  #controls {
+    margin: 15px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  #pixelCanvas {
+    image-rendering: pixelated;
+    border: 3px solid white;
+    background: white;
+    cursor: crosshair;
+  }
+</style>
+</head>
+<body>
+
+<h1>Pixel Painter</h1>
+
+<div id="controls">
+  <label style="color:white">Cor: <input type="color" id="colorPicker" value="#000000"></label>
+  <button id="eraser">Borracha</button>
+  <button id="download">Download</button>
+  <button id="zoomIn">Zoom +</button>
+  <button id="zoomOut">Zoom -</button>
+  <select id="gridSize">
+    <option value="16">16 x 16</option>
+    <option value="32" selected>32 x 32</option>
+    <option value="48">48 x 48</option>
+    <option value="64">64 x 64</option>
+  </select>
+  <button id="applyGrid">Aplicar Grade</button>
+</div>
+
+<canvas id="pixelCanvas" width="512" height="512"></canvas>
+
+<script>
+  const canvas = document.getElementById("pixelCanvas");
+  const ctx = canvas.getContext("2d");
+  const colorPicker = document.getElementById("colorPicker");
+  const eraser = document.getElementById("eraser");
+  const downloadBtn = document.getElementById("download");
+  const zoomIn = document.getElementById("zoomIn");
+  const zoomOut = document.getElementById("zoomOut");
+  const gridSizeSelect = document.getElementById("gridSize");
+  const applyGridBtn = document.getElementById("applyGrid");
+
+  let gridSize = 32;
+  let pixelData = [];
+  let pixelSize = canvas.width / gridSize;
+  let currentColor = colorPicker.value;
+  let zoom = 1;
+  let isDrawing = false;
+
+  function initGrid() {
+    pixelSize = canvas.width / gridSize;
+    pixelData = Array(gridSize * gridSize).fill("#ffffff"); // pixels brancos
+    draw();
+  }
+
+  function draw() {
+    ctx.save();
+    ctx.scale(zoom, zoom);
+    for (let i = 0; i < gridSize * gridSize; i++) {
+      const x = (i % gridSize) * pixelSize;
+      const y = Math.floor(i / gridSize) * pixelSize;
+      ctx.fillStyle = pixelData[i];
+      ctx.fillRect(x, y, pixelSize, pixelSize);
+      ctx.strokeStyle = "#ddd";
+      ctx.strokeRect(x, y, pixelSize, pixelSize);
+    }
+    ctx.restore();
+  }
+
+  function paintPixel(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / zoom;
+    const y = (e.clientY - rect.top) / zoom;
+
+    const px = Math.floor(x / pixelSize);
+    const py = Math.floor(y / pixelSize);
+
+    if (px < 0 || px >= gridSize || py < 0 || py >= gridSize) return;
+
+    const index = py * gridSize + px;
+    pixelData[index] = currentColor;
+    draw();
+  }
+
+  canvas.addEventListener("mousedown", () => (isDrawing = true));
+  canvas.addEventListener("mouseup", () => (isDrawing = false));
+  canvas.addEventListener("mouseleave", () => (isDrawing = false));
+
+  canvas.addEventListener("mousemove", (e) => {
+    if (isDrawing) paintPixel(e);
+  });
+
+  canvas.addEventListener("click", paintPixel);
+
+  colorPicker.addEventListener("input", () => {
+    currentColor = colorPicker.value;
+  });
+
+  eraser.addEventListener("click", () => {
+    currentColor = "#ffffff";
+  });
+
+  downloadBtn.addEventListener("click", () => {
+    const link = document.createElement("a");
+    link.download = "pixel_art.png";
+    link.href = canvas.toDataURL();
+    link.click();
+  });
+
+  zoomIn.addEventListener("click", () => {
+    zoom = Math.min(zoom + 0.2, 5);
+    draw();
+  });
+
+  zoomOut.addEventListener("click", () => {
+    zoom = Math.max(zoom - 0.2, 0.5);
+    draw();
+  });
+
+  applyGridBtn.addEventListener("click", () => {
+    gridSize = parseInt(gridSizeSelect.value);
+    initGrid();
+  });
+
+  initGrid();
+</script>
+
+</body>
+</html>
